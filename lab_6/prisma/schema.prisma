@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Client {
+  clientId   Int      @id @map("client_id") @default(autoincrement())
+  lastName   String   @map("last_name") @db.VarChar(255)
+  firstName  String   @map("first_name") @db.VarChar(255)
+  tickets    Ticket[]
+}
+
+model Genre {
+  genreId     Int      @id @map("genre_id") @default(autoincrement())
+  genreName   String   @map("genre_name") @unique @db.VarChar(255)
+  moviesGenres MovieGenre[]
+}
+
+model Hall {
+  hallId    Int      @id @map("hall_id") @default(autoincrement())
+  hallName  String   @map("hall_name") @unique @db.VarChar(255)
+  isVip     Boolean  @default(false)
+
+  schedules Schedule[]
+
+  @@map("hall")
+}
+
+model Movie {
+  movieId        Int      @id @map("movie_id") @default(autoincrement())
+  title          String   @unique @db.VarChar(255)
+  budget         Decimal? @db.Decimal(15, 2)
+  description    String?
+  releaseDate    DateTime? @map("release_date") @db.Date
+  boxOffice      Decimal? @map("box_office") @db.Decimal(15, 2)
+  duration       Int?
+  averageRating  Float?  @map("average_rating") @db.Real
+  moviesGenres   MovieGenre[]
+  schedules      Schedule[]
+  reviews        Review[]
+}
+
+model MovieGenre {
+  movieId Int @map("movie_id")
+  genreId Int @map("genre_id")
+
+  movie Movie @relation(fields: [movieId], references: [movieId], onDelete: Cascade, onUpdate: NoAction)
+  genre Genre @relation(fields: [genreId], references: [genreId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([movieId, genreId])
+  @@map("movies_genres")
+}
+
+model Schedule {
+  scheduleId Int @id @map("schedule_id") @default(autoincrement())
+  hallId     Int @map("hall_id")
+  showingId  Int @map("showing_id")
+  movieId    Int @map("movie_id")
+
+  hall    Hall    @relation(fields: [hallId], references: [hallId], onDelete: Cascade, onUpdate: NoAction)
+  movie   Movie   @relation(fields: [movieId], references: [movieId], onDelete: Cascade, onUpdate: NoAction)
+  showing Showing @relation(fields: [showingId], references: [showingId], onDelete: Cascade, onUpdate: NoAction)
+  tickets Ticket[]
+
+  @@map("schedule")
+}
+
+model Showing {
+  showingId      Int      @id @map("showing_id") @default(autoincrement())
+  showDate       DateTime @map("show_date") @db.Date
+  showTime       DateTime @map("show_time") @db.Time(6)
+  schedules      Schedule[]
+  showtimePrice  ShowtimePrice @relation(fields: [showTime], references: [showTime], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model ShowtimePrice {
+  showTime DateTime @id @map("show_time") @db.Time(6)
+  price    Decimal @db.Decimal(8, 2)
+  showings Showing[]
+
+  @@map("showtime_prices")
+}
+
+model Ticket {
+  ticketId    Int    @id @map("ticket_id") @default(autoincrement())
+  scheduleId  Int    @map("schedule_id")
+  clientId    Int    @map("client_id")
+  seat        String @db.VarChar(10)
+
+  client   Client   @relation(fields: [clientId], references: [clientId], onDelete: Cascade, onUpdate: NoAction)
+  schedule Schedule @relation(fields: [scheduleId], references: [scheduleId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([scheduleId, seat])
+  @@map("tickets")
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  movieId   Int
+  rating    Int      @db.SmallInt
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  movie Movie @relation(fields: [movieId], references: [movieId], onDelete: Cascade)
+
+  @@map("reviews")
+}
